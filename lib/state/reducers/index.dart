@@ -9,7 +9,8 @@ AppState appStateReducer(AppState state, action) {
 
 PlayStatus playReducer(PlayStatus state, action) {
   if (action is PlayAction) {
-    return new PlayStatus(action.isPlaying);
+    print("action is occured");
+    return new PlayStatus(action.isPlaying, action.coranDataInfo);
   }
   return state;
 }

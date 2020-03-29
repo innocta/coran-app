@@ -1,8 +1,11 @@
 
+import 'models.dart';
+
 class PlayStatus {
   final bool isPlaying;
+  final CoranDataInfo coranDataInfo;
 
-  PlayStatus(this.isPlaying);
+  PlayStatus(this.isPlaying, this.coranDataInfo);
 }
 
 class AppState {
@@ -10,5 +13,5 @@ class AppState {
 
   AppState(this.playStatus);
 
-  AppState.initialState() : playStatus = new PlayStatus(false);
+  AppState.initialState() : playStatus = new PlayStatus(false, new CoranDataInfo(-1, "", "", "", 0.0));
 }

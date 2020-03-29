@@ -1,8 +1,10 @@
-import 'package:audioplayer/audioplayer.dart';
 import 'package:coranapp/state/actions/actions.dart';
+import 'package:coranapp/state/models.dart';
+import 'package:coranapp/view-model.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_redux/flutter_redux.dart';
 import 'package:redux/redux.dart';
+import 'audio-player-manager.dart';
 import 'coran-data.dart';
 import 'choise.dart';
 import 'state/app-state.dart';
@@ -37,9 +39,9 @@ class MyApp extends StatelessWidget {
             // is not restarted.
             primarySwatch: Colors.lightGreen,
           ),
-          home: StoreConnector<AppState, _ViewModel>(
-            converter: (Store<AppState> store) => _ViewModel.create(store),
-            builder: (BuildContext context, _ViewModel viewModel) => DefaultTabController(
+          home: StoreConnector<AppState, ViewModel>(
+            converter: (Store<AppState> store) => ViewModel.create(store),
+            builder: (BuildContext context, ViewModel viewModel) => DefaultTabController(
               length: choices.length,
               child: Scaffold(
                   appBar: AppBar(
@@ -71,26 +73,7 @@ class MyApp extends StatelessWidget {
   }
 }
 
-class _ViewModel {
-  final PlayStatus playStatus;
-  final Function(bool) onPlay;
 
-  _ViewModel({
-    this.playStatus,
-    this.onPlay,
-  });
-
-  factory _ViewModel.create(Store<AppState> store) {
-    _onPlay(isPlaying) {
-      store.dispatch(PlayAction(isPlaying));
-    }
-
-    return _ViewModel(
-      playStatus: store.state.playStatus,
-      onPlay: _onPlay,
-    );
-  }
-}
 
 const List<Choice> choices = const <Choice>[
   const Choice(title: 'سورة', icon: Icons.album),
@@ -99,7 +82,7 @@ const List<Choice> choices = const <Choice>[
 ];
 
 class BuildBottomFooter extends StatefulWidget {
-  final _ViewModel model;
+  final ViewModel model;
 
   @override
   State<StatefulWidget> createState() {
@@ -109,6 +92,7 @@ class BuildBottomFooter extends StatefulWidget {
 }
 
 class _BuildBottomFooterState extends State<BuildBottomFooter> {
+  AudioPlayerManager audioPlayerManager;
 
   buildIcon () {
     print(widget.model.playStatus.isPlaying);
@@ -118,15 +102,23 @@ class _BuildBottomFooterState extends State<BuildBottomFooter> {
     return new Icon(Icons.play_arrow);
   }
 
+  pressedHandler () {
+    if (widget.model.playStatus.isPlaying)
+      this.audioPlayerManager.pause(widget.model.playStatus.coranDataInfo);
+    else
+      this.audioPlayerManager.play(widget.model.playStatus.coranDataInfo);
+  }
+
   @override
   Widget build(BuildContext context) {
+    audioPlayerManager = new AudioPlayerManager(widget.model);
     return BottomAppBar(
       child: ListTile(
           title: Row(
             mainAxisAlignment: MainAxisAlignment.center,
             children: <Widget>[
               new IconButton(icon: new Icon(Icons.fast_rewind), onPressed: () => {}),
-              new IconButton(icon: buildIcon(), onPressed: () => {}),
+              new IconButton(icon: buildIcon(), onPressed: () => this.pressedHandler()),
               new IconButton(icon: new Icon(Icons.fast_forward), onPressed: () => {}),
             ],
           ),
@@ -145,7 +137,7 @@ class _BuildBottomFooterState extends State<BuildBottomFooter> {
 
 class ChoiceCard extends StatefulWidget {
   final Choice choice;
-  final _ViewModel model;
+  final ViewModel model;
 
   @override
   State<StatefulWidget> createState() {
@@ -157,66 +149,48 @@ class ChoiceCard extends StatefulWidget {
 enum PlayerState { stopped, playing, paused }
 
 
+
 class _ChoiceCardState extends State<ChoiceCard> {
-  AudioPlayer audioPlayer = new AudioPlayer();
 
   final Choice choice;
   CoranData coranData;
   PlayerState playerState = PlayerState.stopped;
-  int id = -1;
+  AudioPlayerManager audioPlayerManager;
 
   _ChoiceCardState(this.choice) {
     this.coranData = new CoranData();
   }
 
   Widget _buildSuggestions(dynamic listOfContents) {
+    audioPlayerManager = new AudioPlayerManager(widget.model);
     return new ListView.builder(
         itemCount: listOfContents.length,
         padding: const EdgeInsets.all(16.0),
         itemBuilder: /*1*/ (con2text, i) {
-          return _buildRow(listOfContents[i], i + 1);
+          CoranDataInfo coranDataInfo = new CoranDataInfo(
+              listOfContents[i]['id'],
+              listOfContents[i]['url'],
+              listOfContents[i]['title'],
+              listOfContents[i]['artist'],
+              listOfContents[i]['duration']
+          );
+          return _buildRow(coranDataInfo, i + 1);
         });
   }
 
-  Future<void> play(int id, String url) async {
-    String coranUrl = "http://innocta.de/assets/" + url;
-    print(coranUrl);
-    await audioPlayer.play(coranUrl);
-    widget.model.onPlay(true);
-    setState(() {
-      playerState = PlayerState.playing;
-      this.id = id;
-    });
-  }
+  
 
-  Future<void> pause(int id) async {
-    await audioPlayer.pause();
-    widget.model.onPlay(false);
-    setState(() {
-      playerState = PlayerState.paused;
-      this.id = id;
-    });
-  }
-
-  Future<void> stop(int id) async {
-    await audioPlayer.stop();
-    setState(() {
-      playerState = PlayerState.stopped;
-      this.id = id;
-    });
-  }
-
-  buildIcon (coranDataInfo) {
-    if (coranDataInfo['id'] == this.id) {
-      if ((this.playerState == PlayerState.stopped || this.playerState == PlayerState.paused))
-        return new Icon(Icons.play_arrow);
-      else
+  buildIcon (CoranDataInfo coranDataInfo) {
+    if (coranDataInfo.id == widget.model.playStatus.coranDataInfo.id) {
+      if (widget.model.playStatus.isPlaying)
         return new Icon(Icons.pause);
+      else
+        return new Icon(Icons.play_arrow);
     }
     return new Icon(Icons.play_arrow);
   }
 
-  Widget _buildRow(dynamic coranDataInfo, int index) {
+  Widget _buildRow(CoranDataInfo coranDataInfo, int index) {
     return Card(
       child: Column(
         children: <Widget>[
@@ -226,7 +200,7 @@ class _ChoiceCardState extends State<ChoiceCard> {
               children: <Widget>[
                 Padding(
                   padding: EdgeInsets.all(10),
-                  child: Text(coranDataInfo['title']),
+                  child: Text(coranDataInfo.title),
                 ),
               ],
             ),
@@ -235,7 +209,7 @@ class _ChoiceCardState extends State<ChoiceCard> {
               children: <Widget>[
                 Padding(
                   padding: EdgeInsets.all(5),
-                  child: Text(coranDataInfo['artist']),
+                  child: Text(coranDataInfo.artist),
                 ),
               ],
             ),
@@ -243,10 +217,10 @@ class _ChoiceCardState extends State<ChoiceCard> {
               icon: buildIcon(coranDataInfo),
               highlightColor: Colors.pink,
               onPressed: (){
-                if (this.playerState == PlayerState.stopped || this.playerState == PlayerState.paused)
-                  play(coranDataInfo['id'], coranDataInfo['url']);
-                else if (this.playerState == PlayerState.playing)
-                  pause(coranDataInfo['id']);
+                if (widget.model.playStatus.isPlaying)
+                  this.audioPlayerManager.pause(coranDataInfo);
+                else
+                  this.audioPlayerManager.play(coranDataInfo);
               },
 
             ),
