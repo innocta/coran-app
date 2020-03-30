@@ -16,8 +16,11 @@ class AudioPlayerManager {
   Future<void> play(CoranDataInfo coranDataInfo) async {
     String coranUrl = coranBaseURL + coranDataInfo.url;
     print(coranUrl);
+    model.setIsLoading(true);
     await audioPlayer.play(coranUrl);
     model.onPlay(true, coranDataInfo);
+    await new Future.delayed(const Duration(seconds : 2));
+    model.setIsLoading(false);
   }
 
   Future<void> pause(CoranDataInfo coranDataInfo) async {

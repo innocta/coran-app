@@ -1,4 +1,6 @@
 
+import 'package:coranapp/state/models.dart';
+
 class CoranData {
   dynamic _surats;
   dynamic _ahzab;
@@ -4658,13 +4660,65 @@ class CoranData {
     ];
   }
 
-  dynamic get surats {
-    return _surats;
+  List<CoranDataInfo> getCoranDataInfoList (dynamic data) {
+      List<CoranDataInfo> list = new List<CoranDataInfo>();
+      for(final item  in data) {
+        list.add(new CoranDataInfo(item['id'], item['url'], item['title'], item['artist'], item['duration']));
+      }
+      return list;
   }
-  dynamic get ahzab {
-    return _ahzab;
+
+  List<CoranDataInfo>  get surats {
+    return getCoranDataInfoList(_surats);
   }
-  dynamic get athman {
-    return _athman;
+  List<CoranDataInfo>  get ahzab {
+    return getCoranDataInfoList(_ahzab);
+  }
+  List<CoranDataInfo> get athman {
+    return getCoranDataInfoList(_athman);
+  }
+
+  CoranDataInfo _getNextElement(CoranDataInfo coranDataInfo, elements) {
+    int index = elements.indexWhere((element) => element.id == coranDataInfo.id);
+    if (index == -1) {
+      return null;
+    }
+    if (index + 1 > elements.length) {
+      index = 0;
+    } else {
+      index = index + 1;
+    }
+    return elements[index];
+  }
+
+  CoranDataInfo _getPreviousElement(CoranDataInfo coranDataInfo, elements) {
+    int index = elements.indexWhere((element) => element.id == coranDataInfo.id);
+    if (index == -1) {
+      return null;
+    }
+    if (index - 1 < 0) {
+      index = 0;
+    } else {
+      index = index - 1;
+    }
+    return elements[index];
+  }
+
+  CoranDataInfo getNextCoranDataInfo(CoranDataInfo coranDataInfo) {
+    CoranDataInfo retValue = _getNextElement(coranDataInfo, surats);
+    if (retValue == null)
+      retValue = _getNextElement(coranDataInfo, ahzab);
+    if (retValue == null)
+      retValue = _getNextElement(coranDataInfo, athman);
+    return retValue;
+  }
+
+  CoranDataInfo getPreviousCoranDataInfo(CoranDataInfo coranDataInfo) {
+    CoranDataInfo retValue = _getPreviousElement(coranDataInfo, surats);
+    if (retValue == null)
+      retValue = _getPreviousElement(coranDataInfo, ahzab);
+    if (retValue == null)
+      retValue = _getPreviousElement(coranDataInfo, athman);
+    return retValue;
   }
 }

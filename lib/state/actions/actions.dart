@@ -7,3 +7,9 @@ class PlayAction {
 
   PlayAction(this.isPlaying, this.coranDataInfo) {}
 }
+
+class IsLoadingAction {
+  bool isLoading;
+
+  IsLoadingAction(this.isLoading) {}
+}

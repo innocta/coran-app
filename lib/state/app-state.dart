@@ -10,8 +10,8 @@ class PlayStatus {
 
 class AppState {
   final PlayStatus playStatus;
+  bool isLoading;
+  AppState(this.playStatus, this.isLoading);
 
-  AppState(this.playStatus);
-
-  AppState.initialState() : playStatus = new PlayStatus(false, new CoranDataInfo(-1, "", "", "", 0.0));
+  AppState.initialState() : playStatus = new PlayStatus(false, new CoranDataInfo(-1, "", "", "", 0.0)), this.isLoading = false;
 }
