@@ -1,3 +1,4 @@
+deprecated
 # coranapp
 
 A new Flutter application.
